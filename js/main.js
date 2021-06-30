@@ -29,7 +29,7 @@ const rotEuler = new function() {
   this.c = 0;
 }
 
-function mpGear(r,p, y, beta) {
+function mpGear(r,p,y, beta) {
     const Cb = Math.cos(beta);
     const Sb = Math.sin(beta);
 
@@ -64,7 +64,7 @@ function loadModel(url) {
 }
 
 
-init();
+
 
 function init() {
 
@@ -192,7 +192,7 @@ function init() {
     gui.add(rotEuler, 'b',0,180).name( 'β' );
     gui.add(rotEuler, 'c',0,180 ).name( '𝛾' );
     
-    //if all Promises resolved 
+    //if all Promises for model loading resolved 
     Promise.all([p1,p2]).then(() => {
         //do something to the model
         mpgA.scale.multiplyScalar( 1/0.6 ); //saved 60% scales stl (used for 3d print) by mistake
@@ -251,3 +251,7 @@ function render() {
     mpgB.setRotationFromEuler(mpgBEuler);
 
 }
+
+
+
+init();
