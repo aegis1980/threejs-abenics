@@ -205,11 +205,9 @@ function init() {
     //if all Promises for model loading resolved 
     Promise.all([p1,p2]).then(() => {
         //do something to the model
-        mpgA.scale.multiplyScalar( 1/0.6 ); //saved 60% scales stl (used for 3d print) by mistake
         holderA.add(mpgA);
         holderA.add(mpgAAxis);
 
-        mpgB.scale.multiplyScalar( 1/0.6 );// ditto
         holderB.add(mpgB);
         holderB.add(mpgBAxis);
 
