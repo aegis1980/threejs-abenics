@@ -11,6 +11,7 @@ var renderer, scene, camera, controls;
 let arrowX, arrowY, arrowZ;
 let arrowXm, arrowYm, arrowZm;
 let csg, mpgA, mpgB;
+let holderA, holderB;
 let csgAxis, mpgAAxis, mpgBAxis;
 
 // Table V Mechanical constants - the orentrations of the deriver unit relative to global.
@@ -19,7 +20,8 @@ const mechConstB = [-Math.PI/2, 0 ,3* Math.PI/4];
 
 function translationFromEuler(a,r){
   const e = new THREE.Euler(a[0],a[1],a[2]);
-  return new THREE.Vector3(r,0,0).applyEuler(e);
+  const v = new THREE.Vector3(r,0,0).applyEuler(e);
+  return [e,v];
 } 
 
 
@@ -118,9 +120,9 @@ function init() {
     arrowX = new THREE.Geometry();
     arrowX.matrixAutoUpdate = false;
     arrowY = new THREE.Geometry();
-    arrowX.matrixAutoUpdate = false;
+    arrowY.matrixAutoUpdate = false;
     arrowZ = new THREE.Geometry();
-    arrowX.matrixAutoUpdate = false;
+    arrowZ.matrixAutoUpdate = false;
 
     shaftMesh.updateMatrix();
     arrowX.merge(shaftMesh.geometry, shaftMesh.matrix);
@@ -165,11 +167,12 @@ function init() {
     csgAxis.add(arrowYm);
     csgAxis.add(arrowZm);
 
-    mpgAAxis = csgAxis.clone();
-    mpgAAxis.position.copy( translationFromEuler(mechConstA,centreDist));
+    // calc positions & orientates MPGs according to 'mechanical constants'
+    const tA = translationFromEuler(mechConstA,centreDist);
+    const tB = translationFromEuler(mechConstB,centreDist);
 
+    mpgAAxis = csgAxis.clone();
     mpgBAxis = csgAxis.clone();
-    mpgBAxis.position.copy( translationFromEuler(mechConstB,centreDist));
 
 
     let p1 = loadModel('stl/mpg.stl').then(result => {  
@@ -177,7 +180,6 @@ function init() {
         mpgA = new THREE.Mesh( result, material );
         mpgA.castShadow = true;
         mpgA.receiveShadow = true;
-
         mpgB = mpgA.clone();
      });
     let p2 = loadModel('stl/csg.stl').then(result => {  
@@ -187,7 +189,15 @@ function init() {
         csg.receiveShadow = true;
     });
 
-    const gui = new GUI({ autoPlace: true });
+    holderA = new THREE.Group();
+    holderA.position.copy(tA[1]);
+    holderA.setRotationFromEuler(tA[0]);
+
+    holderB = new THREE.Group();
+    holderB.position.copy(tB[1]);
+    holderB.setRotationFromEuler(tB[0]);
+
+    const gui = new GUI();
     gui.add(rotEuler, 'a',0,180 ).name( 'α' );
     gui.add(rotEuler, 'b',0,180).name( 'β' );
     gui.add(rotEuler, 'c',0,180 ).name( '𝛾' );
@@ -196,21 +206,20 @@ function init() {
     Promise.all([p1,p2]).then(() => {
         //do something to the model
         mpgA.scale.multiplyScalar( 1/0.6 ); //saved 60% scales stl (used for 3d print) by mistake
-        mpgA.position.copy( translationFromEuler(mechConstA,centreDist));
-    
+        holderA.add(mpgA);
+        holderA.add(mpgAAxis);
+
         mpgB.scale.multiplyScalar( 1/0.6 );// ditto
-        mpgB.position.copy( translationFromEuler(mechConstB,centreDist));
+        holderB.add(mpgB);
+        holderB.add(mpgBAxis);
 
-        scene.add(mpgA);
-        scene.add(mpgB);
-        scene.add(csg);
-
-        scene.add( mpgAAxis );
-        scene.add(csgAxis);
-        scene.add(mpgBAxis);
         
-        //continue the process
-        animate();
+        scene.add(holderA);
+        scene.add(holderB);
+        scene.add(csg);
+        scene.add(csgAxis);
+        
+
     });
 }
 
@@ -255,3 +264,4 @@ function render() {
 
 
 init();
+animate();
