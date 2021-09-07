@@ -2,7 +2,7 @@ import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitCo
 import { GUI } from "https://threejs.org/examples/jsm/libs/dat.gui.module.js";
 import { STLLoader } from 'https://threejs.org/examples/jsm/loaders/STLLoader.js';
 
-
+const BETA = Math.PI/2;
 const csgPDia = 96; //pitch diameter
 const mpgPDia = 48; //pitch diameter
 const centreDist = 0.5 * (csgPDia + mpgPDia)
@@ -11,7 +11,6 @@ var renderer, scene, camera, controls;
 let arrowX, arrowY, arrowZ;
 let arrowXm, arrowYm, arrowZm;
 let csg, mpgA, mpgB;
-let holderA, holderB;
 let csgAxis, mpgAAxis, mpgBAxis;
 
 // Table V Mechanical constants - the orentrations of the deriver unit relative to global.
@@ -89,7 +88,7 @@ function init() {
   
   				//
 
-	window.addEventListener( 'resize', onWindowResize );
+	  window.addEventListener( 'resize', onWindowResize );
   
     // ambient
     scene.add( new THREE.AmbientLight( 0x222222 ) );
@@ -159,9 +158,7 @@ function init() {
     arrowYm = new THREE.Mesh( arrowY, red );
     arrowZm = new THREE.Mesh( arrowZ, blue );
 
-
-    //create a csg.and add the two cubes
-    //These cubes can now be rotated / scaled etc as a csg.    
+ 
     csgAxis = new THREE.Group();
     csgAxis.add(arrowXm);
     csgAxis.add(arrowYm);
@@ -176,26 +173,22 @@ function init() {
 
 
     let p1 = loadModel('stl/mpg.stl').then(result => {  
-        const material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
+        const material = new THREE.MeshStandardMaterial( { color: 0xff5533 } );
         mpgA = new THREE.Mesh( result, material );
         mpgA.castShadow = true;
         mpgA.receiveShadow = true;
         mpgB = mpgA.clone();
+        console.log('Monopole gear loaded.');
      });
     let p2 = loadModel('stl/csg.stl').then(result => {  
-        const material = new THREE.MeshPhongMaterial( { color: 0xdd1144, specular: 0x111111, shininess: 200 } );
+        const material = new THREE.MeshStandardMaterial( { color: 0xdd1144} );
         csg = new THREE.Mesh( result, material );
         csg.castShadow = true;
         csg.receiveShadow = true;
+        console.log('Cross spherical gear loaded.');
     });
 
-    holderA = new THREE.Group();
-    holderA.position.copy(tA[1]);
-    holderA.setRotationFromEuler(tA[0]);
 
-    holderB = new THREE.Group();
-    holderB.position.copy(tB[1]);
-    holderB.setRotationFromEuler(tB[0]);
 
     const gui = new GUI();
     gui.add(rotEuler, 'a',0,180 ).name( 'α' );
@@ -204,18 +197,23 @@ function init() {
     
     //if all Promises for model loading resolved 
     Promise.all([p1,p2]).then(() => {
-        //do something to the model
-        holderA.add(mpgA);
-        holderA.add(mpgAAxis);
-
-        holderB.add(mpgB);
-        holderB.add(mpgBAxis);
+        console.log('Both STL models loaded');
+        mpgA.add(mpgAAxis);
+        mpgA.position.copy(tA[1]);
+        mpgA.setRotationFromEuler(tA[0]);
+    
+        
+        mpgB.add(mpgBAxis);
+        mpgB.position.copy(tB[1]);
+        mpgB.setRotationFromEuler(tB[0]);
 
         
-        scene.add(holderA);
-        scene.add(holderB);
+        scene.add(mpgA);
+        scene.add(mpgB);
         scene.add(csg);
-        scene.add(csgAxis);
+        csg.add(csgAxis);
+
+        animate();
         
 
     });
@@ -233,28 +231,22 @@ function onWindowResize() {
 }
 
 function animate() {
-
-    requestAnimationFrame( animate );
-    render();
+    update();
     renderer.render( scene, camera );
-
+    requestAnimationFrame( animate );
 }
 
 
-function render() {
+function update() {
     const csgEuler = new THREE.Euler(rotEuler.a * Math.PI / 180 , rotEuler.b * Math.PI / 180, rotEuler.c * Math.PI / 180);
-    const beta = Math.PI/2;
-    const t1 = mpGear(rotEuler.a * Math.PI / 180 , rotEuler.b * Math.PI / 180, rotEuler.c * Math.PI / 180,beta);
+ 
+    const t1 = mpGear(rotEuler.a * Math.PI / 180 , rotEuler.b * Math.PI / 180, rotEuler.c * Math.PI / 180,BETA);
     const mpgAEuler = new THREE.Euler(t1[0],t1[1],t1[2]);
     const mpgBEuler = new THREE.Euler(t1[3],t1[4],t1[5]);
   
-    csgAxis.setRotationFromEuler(csgEuler);
+
     csg.setRotationFromEuler(csgEuler);
-
-    mpgAAxis.setRotationFromEuler(mpgAEuler);
     mpgA.setRotationFromEuler(mpgAEuler);
-
-    mpgBAxis.setRotationFromEuler(mpgBEuler);
     mpgB.setRotationFromEuler(mpgBEuler);
 
 }
@@ -262,4 +254,3 @@ function render() {
 
 
 init();
-animate();
